@@ -75,6 +75,7 @@ if ($UserHomesRoot) {
 Write-Host "[2] Creating quota templates..." -ForegroundColor Red
 
 #helper
+# helper
 function New-HardQuotaTemplate {
     param(
         [string]$Name,
@@ -83,24 +84,25 @@ function New-HardQuotaTemplate {
         [string]$MailTo
     )
 
-    $thresholds = @(
-        #80%
-        New-FsrmQuotaThreshold -Percentage 80 -Action @(
-            New-FsrmAction -Type Email -MailTo $MailTo
-        ),
+    # 80% – email
+    $act80 = New-FsrmAction -Type Email -MailTo $MailTo
+    $th80 = New-FsrmQuotaThreshold -Percentage 80 -Action $act80
 
-        #90%
-        New-FsrmQuotaThreshold -Percentage 90 -Action @(
-            New-FsrmAction -Type Email -MailTo $MailTo,
-            New-FsrmAction -Type Event
-        ),
-
-        #100%
-        New-FsrmQuotaThreshold -Percentage 100 -Action @(
-            New-FsrmAction -Type Email -MailTo $MailTo,
-            New-FsrmAction -Type Event
-        )
+    # 90% – email + event
+    $act90 = @(
+        New-FsrmAction -Type Email -MailTo $MailTo
+        New-FsrmAction -Type Event
     )
+    $th90 = New-FsrmQuotaThreshold -Percentage 90 -Action $act90
+
+    # 100% – email + event
+    $act100 = @(
+        New-FsrmAction -Type Email -MailTo $MailTo
+        New-FsrmAction -Type Event
+    )
+    $th100 = New-FsrmQuotaThreshold -Percentage 100 -Action $act100
+
+    $thresholds = @($th80, $th90, $th100)
 
     New-FsrmQuotaTemplate -Name $Name `
         -Description $Description `
@@ -162,24 +164,28 @@ if ($UserHomesRoot -and (Test-Path $UserHomesRoot)) {
     # Auto-quota: any new folder directly under $UserHomesRoot gets this template
     New-FsrmAutoQuota -Path $UserHomesRoot `
         -Template "Home_${HomeQuotaMB}MB_Hard" `
-        -ReevaluateExistingQuotas:$true `
         -ErrorAction SilentlyContinue | Out-Null
 }
 
 Write-Host "[4] Creating file screen template ..." -ForegroundColor Red
 
-#check
+# check groups
 $existingGroups = Get-FsrmFileGroup
-$validGroups = $existingGroups | Where-Object { $BlockedFileGroups -contains $_.Name } | Select-Object -ExpandProperty Name
+$validGroups = $existingGroups |
+Where-Object { $BlockedFileGroups -contains $_.Name } |
+Select-Object -ExpandProperty Name
 
 if ($validGroups.Count -eq 0) {
     Write-Warning "None of the requested file groups were found on this server. Adjust `$BlockedFileGroups or create custom groups."
 }
 else {
+    # event notification action
+    $eventAction = New-FsrmAction -Type Event
+
     New-FsrmFileScreenTemplate -Name "Block_NonOffice_NonImages" `
         -IncludeGroup $validGroups `
         -Active `
-        -Action (New-FsrmAction -Type Event) `
+        -Notification $eventAction `
         -ErrorAction SilentlyContinue | Out-Null
 
     Write-Host "[5] Applying file screens to shared folders ..." -ForegroundColor Red
