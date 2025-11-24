@@ -15,26 +15,28 @@ Configuration de FSRM pour DCroot :
 
 #---------CONFIG---------------
 
-$BasePath = "D:\Shares"
+$BasePath = "C:\Shares"
 $CommonFolderName = "Commun"
 
 $Departments = @{
-    "Direction" = @()
-    "RH"        = @("Gestion", "Recrutement")
-    "Compta"    = @()
-    "Informatique" = @("Support", "Projet")
+    "Informatique"        = @("Developpement", "Hotline", "Systemes")
+    "Ressources humaines" = @("Recrutement", "Gestion du personnel")
+    "Finances"            = @("Investissements", "Comptabilite")
+    "R&D"                 = @("Testing", "Recherche")
+    "Technique"           = @("Techniciens", "Achat")
+    "Commerciaux"         = @("Sedentaires", "Technico")
+    "Marketing"           = @("Site1", "Site2", "Site3", "Site4")
 }
 
-$UserHomesRoot = "D:\Homes"  
+$UserHomesRoot = "C:\Homes"  
 
 #sizes in MB
-$DeptQuotaMB    = 500
+$DeptQuotaMB = 500
 $SubDeptQuotaMB = 100
-$CommunQuotaMB  = 500
-$HomeQuotaMB    = 200          
+$CommunQuotaMB = 500
+$HomeQuotaMB = 200          
 
-# E-mail for FSRM notifications (requires SMTP config in FSRM options) == ???
-$AdminEmail = "admin@contoso.lan"  
+$DeptManagersMail = "admin@angleterre.lan"
 
 $BlockedFileGroups = @(
     "Executables and Scripts",
@@ -45,12 +47,11 @@ $BlockedFileGroups = @(
 
 #-------------------------------------------------
 
-Write-Host "Init-FSRM starting..." -ForegroundColor Cyan
-
+Write-Host "Init-FSRM starting..." -ForegroundColor Red
 #check
 Import-Module FileServerResourceManager -ErrorAction Stop
 
-Write-Host "[1] Creating folder tree under $BasePath ..." -ForegroundColor Cyan
+Write-Host "[1] Creating folder tree under $BasePath ..." -ForegroundColor Red
 
 # Base + Commun
 New-Item -ItemType Directory -Path $BasePath -Force | Out-Null
@@ -67,24 +68,38 @@ foreach ($dept in $Departments.Keys) {
 }
 
 if ($UserHomesRoot) {
-    Write-Host "Creating user homes root at $UserHomesRoot..." -ForegroundColor Cyan
+    Write-Host "Creating user homes root at $UserHomesRoot..." -ForegroundColor Red
     New-Item -ItemType Directory -Path $UserHomesRoot -Force | Out-Null
 }
 
-Write-Host "[2] Creating quota templates..." -ForegroundColor Cyan
+Write-Host "[2] Creating quota templates..." -ForegroundColor Red
 
+#helper
 function New-HardQuotaTemplate {
     param(
         [string]$Name,
         [int64]$SizeMB,
-        [string]$Description
+        [string]$Description,
+        [string]$MailTo
     )
 
-    # Threshold actions: event log
     $thresholds = @(
-        New-FsrmQuotaThreshold -Percentage 80 -Action (New-FsrmAction -Type Event),
-        New-FsrmQuotaThreshold -Percentage 90 -Action (New-FsrmAction -Type Event),
-        New-FsrmQuotaThreshold -Percentage 100 -Action (New-FsrmAction -Type Event)
+        #80%
+        New-FsrmQuotaThreshold -Percentage 80 -Action @(
+            New-FsrmAction -Type Email -MailTo $MailTo
+        ),
+
+        #90%
+        New-FsrmQuotaThreshold -Percentage 90 -Action @(
+            New-FsrmAction -Type Email -MailTo $MailTo,
+            New-FsrmAction -Type Event
+        ),
+
+        #100%
+        New-FsrmQuotaThreshold -Percentage 100 -Action @(
+            New-FsrmAction -Type Email -MailTo $MailTo,
+            New-FsrmAction -Type Event
+        )
     )
 
     New-FsrmQuotaTemplate -Name $Name `
@@ -95,24 +110,27 @@ function New-HardQuotaTemplate {
 }
 
 New-HardQuotaTemplate -Name "Dept_${DeptQuotaMB}MB_Hard" `
-                      -SizeMB $DeptQuotaMB `
-                      -Description "Hard quota for department folders"
+    -SizeMB $DeptQuotaMB `
+    -Description "Hard quota for department folders" `
+    -MailTo $DeptManagersMail
 
 New-HardQuotaTemplate -Name "SubDept_${SubDeptQuotaMB}MB_Hard" `
-                      -SizeMB $SubDeptQuotaMB `
-                      -Description "Hard quota for sub-department folders"
+    -SizeMB $SubDeptQuotaMB `
+    -Description "Hard quota for sub-department folders" `
+    -MailTo $DeptManagersMail
 
 New-HardQuotaTemplate -Name "Commun_${CommunQuotaMB}MB_Hard" `
-                      -SizeMB $CommunQuotaMB `
-                      -Description "Hard quota for Commun folder"
+    -SizeMB $CommunQuotaMB `
+    -Description "Hard quota for Commun folder" `
+    -MailTo $DeptManagersMail
 
 if ($UserHomesRoot) {
     New-HardQuotaTemplate -Name "Home_${HomeQuotaMB}MB_Hard" `
-                          -SizeMB $HomeQuotaMB `
-                          -Description "Hard quota for user home directories"
+        -SizeMB $HomeQuotaMB `
+        -Description "Hard quota for user home directories"
 }
 
-Write-Host "[3] Applying quotas to department/sub-dept /Commun..." -ForegroundColor Cyan
+Write-Host "[3] Applying quotas to department/sub-dept /Commun..." -ForegroundColor Red
 
 foreach ($dept in $Departments.Keys) {
     $deptPath = Join-Path $BasePath $dept
@@ -140,7 +158,7 @@ if (Test-Path $communPath) {
 }
 
 if ($UserHomesRoot -and (Test-Path $UserHomesRoot)) {
-    Write-Host "Applying auto-quota template for user homes under $UserHomesRoot ..." -ForegroundColor Cyan
+    Write-Host "Applying auto-quota template for user homes under $UserHomesRoot ..." -ForegroundColor Red
     # Auto-quota: any new folder directly under $UserHomesRoot gets this template
     New-FsrmAutoQuota -Path $UserHomesRoot `
         -Template "Home_${HomeQuotaMB}MB_Hard" `
@@ -148,7 +166,7 @@ if ($UserHomesRoot -and (Test-Path $UserHomesRoot)) {
         -ErrorAction SilentlyContinue | Out-Null
 }
 
-Write-Host "[4] Creating file screen template ..." -ForegroundColor Cyan
+Write-Host "[4] Creating file screen template ..." -ForegroundColor Red
 
 #check
 $existingGroups = Get-FsrmFileGroup
@@ -156,14 +174,15 @@ $validGroups = $existingGroups | Where-Object { $BlockedFileGroups -contains $_.
 
 if ($validGroups.Count -eq 0) {
     Write-Warning "None of the requested file groups were found on this server. Adjust `$BlockedFileGroups or create custom groups."
-} else {
+}
+else {
     New-FsrmFileScreenTemplate -Name "Block_NonOffice_NonImages" `
         -IncludeGroup $validGroups `
         -Active `
         -Action (New-FsrmAction -Type Event) `
         -ErrorAction SilentlyContinue | Out-Null
 
-    Write-Host "[5] Applying file screens to shared folders ..." -ForegroundColor Cyan
+    Write-Host "[5] Applying file screens to shared folders ..." -ForegroundColor Red
 
     $pathsToScreen = @()
 
