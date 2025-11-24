@@ -86,11 +86,8 @@ start_all() {
   echo "Starting Liverpool..."
   start_liverpool
 
-  echo "Starting Site3..."
-  start_site3
-
-  echo "Starting security/sniffer VM..."
-  start_sec_sniffer
+  echo "Starting client..."
+  start_client
 }
 
 case "$1" in
