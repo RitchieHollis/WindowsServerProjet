@@ -61,7 +61,7 @@ $cleanedObjects = foreach ($row in $rows) {
             # Nettoie seulement les deux premières colonnes
             $props[$cleanCol] = Clean-String $row.$origCol
         } else {
-            $props[$cleanCol] = $row.$origCol
+            $props[$cleanCol] = Remove-Accents $row.$origCol
         }
     }
     New-Object PSObject -Property $props
