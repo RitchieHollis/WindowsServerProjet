@@ -3,7 +3,7 @@
 ########################################
 
 # Nouveau nom du serveur
-$NewServerName = "London"
+$NewServerName = "Londres"
 
 # Configuration IP
 $InterfaceAlias = "Ethernet"
