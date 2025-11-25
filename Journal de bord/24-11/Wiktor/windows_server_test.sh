@@ -29,7 +29,6 @@ start_london_dc() {
     -m "$RAM_MB" \
     -smp cores="$CPU_CORES" \
     -machine type=pc,accel=tcg \
-    -cdrom $HOME/iso/winserv.ISO \
     -drive file="$DISK_DIR/london-dc.qcow2",if=ide \
     -netdev socket,id=mynet,listen=:12345 \
     -device e1000,netdev=mynet \
@@ -68,11 +67,14 @@ start_client() {
     -m 2048 \
     -smp cores=1 \
     -machine type=pc,accel=tcg \
-    -cdrom $HOME/iso/win10.ISO \
     -drive file="$DISK_DIR/client.qcow2",if=ide \
+    -cdrom $HOME/iso/win10.ISO \
     -netdev socket,id=mynet,connect=127.0.0.1:12345 \
     -device e1000,netdev=mynet \
     -boot c &
+    
+    
+    
 }
 
 start_all() {
