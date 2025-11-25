@@ -208,7 +208,7 @@ foreach ($dept in $DeptInfo.Keys) {
 }
 
 Write-Host ""
-Write-Host "== Global Commun folder rules ==" -ForegroundColor Magenta
+Write-Host "Global Commun folder rules " -ForegroundColor Magenta
 
 $globalCommunPath = Join-Path $SharesRoot "Commun"
 
