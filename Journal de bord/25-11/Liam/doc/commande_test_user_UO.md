@@ -38,6 +38,27 @@ Get-ADOrganizationalUnit -Filter * | Select Name, DistinguishedName
 
 Utiliser le script : ``test_connection.ps1``
 
+
+## Tester la connection d'un utilisateur sur le serveur
+
+```
+runas /user:LONDON\Kenny.ADAM cmd
+```
+Attention : Il faut autoriser l'utilisateur 
+Pour éviter ce genre d'erreur : 
+```
+RUNAS ERROR: Unable to run - cmd
+1385: Logon failure: the user has not been granted the requested logon type at this computer.
+```
+`secpol.msc -> Local Policies -> User Rights Assignment -> Allow log on locally`
+
+## Se connecter avec un client
+Pour que cela fonctionne il faut authoriser l'utilisateur, pour cela : 
+`secpol.msc -> Local Policies -> User Rights Assignment -> Allow log on through Remote Desktop Services`
+ensuite, ajouter l'utilisateur. 
+
+
+
 ---
 
 # **Voir l’appartenance d’un utilisateur aux groupes**
