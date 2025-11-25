@@ -2,7 +2,7 @@
 # VARIABLES AD
 ########################################
 
-$DomainName   = "anglettere.lan"
+$DomainName   = "angleterre.lan"
 $DSRMPassword = "Test123*" | ConvertTo-SecureString -AsPlainText -Force
 
 ########################################

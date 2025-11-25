@@ -14,13 +14,13 @@ $DnsDomain    = "anglettere.lan"
 ########################################
 
 
-Write-Host "🔹 Installation du rôle DHCP..." -ForegroundColor Cyan
+Write-Host "?? Installation du rôle DHCP..." -ForegroundColor Cyan
 Install-WindowsFeature DHCP -IncludeManagementTools
 
-Write-Host "🔹 Autorisation du serveur DHCP dans Active Directory..." -ForegroundColor Cyan
+Write-Host "?? Autorisation du serveur DHCP dans Active Directory..." -ForegroundColor Cyan
 Add-DhcpServerInDC -DnsName "London.$DnsDomain" -IpAddress $ServerIP
 
-Write-Host "🔹 Création de l'étendue DHCP pour VLAN 10 (London)..." -ForegroundColor Cyan
+Write-Host "?? Création de l'étendue DHCP pour VLAN 10 (London)..." -ForegroundColor Cyan
 Add-DhcpServerv4Scope `
     -Name $ScopeName `
     -StartRange $StartIP `
@@ -28,12 +28,12 @@ Add-DhcpServerv4Scope `
     -SubnetMask $SubnetMask `
     -State Active
 
-Write-Host "🔹 Configuration des options DHCP..." -ForegroundColor Cyan
+Write-Host "?? Configuration des options DHCP..." -ForegroundColor Cyan
 Set-DhcpServerv4OptionValue -ScopeId $ScopeNetwork -Router $Gateway
 Set-DhcpServerv4OptionValue -ScopeId $ScopeNetwork -DnsServer $DnsServer
 Set-DhcpServerv4OptionValue -ScopeId $ScopeNetwork -DnsDomain $DnsDomain
 
-Write-Host "🔹 Vérification de l'étendue..." -ForegroundColor Cyan
+Write-Host "?? Vérification de l'étendue..." -ForegroundColor Cyan
 Get-DhcpServerv4Scope
 
-Write-Host "✅ DHCP configuré pour le VLAN 10 (London) !" -ForegroundColor Green
+Write-Host "? DHCP configuré pour le VLAN 10 (London) !" -ForegroundColor Green

@@ -1,7 +1,7 @@
 ########################################
 # VARIABLES À ADAPTER
 ########################################
-$DomainName   = "anglettere.lan"      # Nom de ton domaine
+$DomainName   = "angleterre.lan"      # Nom de ton domaine
 $ReverseNetId = "10.0.0.0/22"         # Plage réseau de ton domaine
 $ZoneFileForward = "$DomainName.dns"  # Nom du fichier de zone forward
 $ZoneFileReverse = "10.0.0.rev"       # Nom du fichier de zone reverse
