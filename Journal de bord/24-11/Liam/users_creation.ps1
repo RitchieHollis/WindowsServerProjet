@@ -12,10 +12,8 @@ $PasswordLog = ".\Users_Passwords.csv"
 
 # --- Fonction pour générer mot de passe aléatoire ---
 function Generate-RandomPassword {
-    param([int]$Length = 12)
 
-    if ($Length -lt 7) { $Length = 7 } # minimum requis
-
+    $length = 7
     $upper = 65..90 | ForEach-Object {[char]$_}      # A-Z
     $lower = 97..122 | ForEach-Object {[char]$_}     # a-z
     $digits = 48..57 | ForEach-Object {[char]$_}     # 0-9
@@ -85,7 +83,7 @@ foreach ($user in $users) {
             $SAM += (Get-Random -Minimum 10 -Maximum 99)
         }
 
-        $Password = Generate-RandomPassword 12
+        $Password = Generate-RandomPassword
         $SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
 
         New-ADUser -Name "$Prenom $Nom" `
