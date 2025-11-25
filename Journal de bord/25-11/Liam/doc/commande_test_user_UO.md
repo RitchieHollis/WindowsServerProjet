@@ -107,3 +107,11 @@ Pour UO Direction :
 ```
 Get-ADGroup -Filter * -SearchBase "OU=Direction,DC=london,DC=local"
 ```
+
+# **Changer le mot de passe d'un user sur un client**
+
+exemple avec Kenny.ADAM :
+
+```
+net user Kenny.ADAM * /domain
+```
