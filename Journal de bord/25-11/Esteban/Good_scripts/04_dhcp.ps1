@@ -10,7 +10,7 @@ $EndIP        = "10.0.3.250"            # Fin de la plage (10.0.0.0/22 = .0 à .
 $SubnetMask   = "255.255.252.0"
 $Gateway      = "10.0.0.1"
 $DnsServer    = "10.0.0.2"
-$DnsDomain    = "anglettere.lan"
+$DnsDomain    = "angleterre.lan"
 ########################################
 
 
