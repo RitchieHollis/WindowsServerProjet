@@ -78,7 +78,7 @@ foreach ($OUParent in $Structure.Keys) {
         }
 
         foreach ($type in $GLTypes) {
-            $GLName = "GL_${GroupName.Substring(3)}_$type"
+            $GLName = "GL_"+$GroupName.Substring(3)+"_"+$type
             if (Get-ADGroup -Filter "SamAccountName -eq '$GLName'" -ErrorAction SilentlyContinue) {
                 Write-Host "         [OK] GL : $GLName"
             } else {
