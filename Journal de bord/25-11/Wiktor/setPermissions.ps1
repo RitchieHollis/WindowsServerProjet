@@ -1,7 +1,7 @@
 param(
     [string]$SharesRoot = "C:\Shares",
     [string]$DepartmentsBaseOU = "OU=Departments,DC=Angleterre,DC=lan",
-    [string]$DirectionGroupSam = "Direction",
+    [string]$DirectionGroupSam = "GG_DIRECTION",
     [string]$AllUsersGroupSam = "Domain Users" 
 )
 
@@ -40,6 +40,8 @@ function Grant-FolderPermission {
         [string]$Identity,   #ANGLETERRE\GG_Informatique_Developpement
         [System.Security.AccessControl.FileSystemRights]$Rights
     )
+
+    Write-Host "    [DEBUG] Grant-FolderPermission Path='$Path' Identity='$Identity'" -ForegroundColor DarkGray
 
     $acl = Get-Acl -Path $Path
 
@@ -145,7 +147,7 @@ foreach ($dept in $DeptInfo.Keys) {
     Cleanup-Inheritance -Path $deptPath
 
     # Compute group + manager identities
-    $subEntries = $deptData.GetEnumerator()
+    $subEntries = @($deptData.GetEnumerator())
     $subGroups = $subEntries | ForEach-Object { "$domainNetBIOS\$($_.Value.Group)" }
     $managers = $subEntries | ForEach-Object { "$domainNetBIOS\$($_.Value.Manager.SamAccountName)" }
 
@@ -160,20 +162,6 @@ foreach ($dept in $DeptInfo.Keys) {
 
     # Direction: RW on department root
     Grant-FolderPermission -Path $deptPath -Identity $DirectionIdentity -Rights 'Modify'
-
-    # Commun folder: everyone in dept RW (common space)
-    $communPath = Join-Path $deptPath "Commun"
-    if (Test-Path $communPath) {
-        Write-Host "  [B] Setting ACL on '$communPath'" -ForegroundColor Cyan
-        Cleanup-Inheritance -Path $communPath
-
-        foreach ($g in $subGroups) {
-            Grant-FolderPermission -Path $communPath -Identity $g -Rights 'Modify'
-        }
-    }
-
-    # Direction also RW on department Commun
-    Grant-FolderPermission -Path $communPath -Identity $DirectionIdentity -Rights 'Modify'
 
     #Sub-department folders: own group RW, others R
     foreach ($entry in $deptData.GetEnumerator()) {
