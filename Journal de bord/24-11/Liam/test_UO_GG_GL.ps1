@@ -14,10 +14,13 @@ $Structure = @{
     "R&D"                 = @("Testing", "Recherche")
     "Technique"           = @("Techniciens", "Achat")
     "Commerciaux"         = @("Sedentaires", "Technico")
-    "Marketing"           = @("Site1", "Site2", "Site3", "Site4")
+    "Marketting"           = @("Site1", "Site2", "Site3", "Site4")
 }
 
-Write-Host "=== VERIFICATION DES UO ET GROUPES ===" -ForegroundColor Cyan
+$RootGroup = "GG_DIRECTION"
+$GLTypes = @("R", "W", "RW")
+
+Write-Host "=== VERIFICATION DE L'OU DIRECTION ET GG_DIRECTION ===" -ForegroundColor Cyan
 Write-Host ""
 
 if (Get-ADOrganizationalUnit -LDAPFilter "(ou=$RootOU)" -ErrorAction SilentlyContinue) {
@@ -26,6 +29,23 @@ if (Get-ADOrganizationalUnit -LDAPFilter "(ou=$RootOU)" -ErrorAction SilentlyCon
     Write-Host "[ERREUR] OU Direction manquante"
 }
 
+if (Get-ADGroup -Filter "SamAccountName -eq '$RootGroup'" -ErrorAction SilentlyContinue) {
+    Write-Host "[OK] Groupe : $RootGroup"
+} else {
+    Write-Host "[ERREUR] Groupe manquant : $RootGroup"
+}
+
+foreach ($type in $GLTypes) {
+    $GLName = "GL_DIRECTION_$type"
+    if (Get-ADGroup -Filter "SamAccountName -eq '$GLName'" -ErrorAction SilentlyContinue) {
+        Write-Host "   [OK] GL : $GLName"
+    } else {
+        Write-Host "   [ERREUR] GL manquant : $GLName"
+    }
+}
+
+Write-Host ""
+Write-Host "=== VERIFICATION DES UO, GG ET GL PAR DEPARTEMENT ===" -ForegroundColor Cyan
 Write-Host ""
 
 foreach ($OUParent in $Structure.Keys) {
@@ -55,6 +75,15 @@ foreach ($OUParent in $Structure.Keys) {
             Write-Host "      [OK] Groupe : $GroupName"
         } else {
             Write-Host "      [ERREUR] Groupe manquant : $GroupName"
+        }
+
+        foreach ($type in $GLTypes) {
+            $GLName = "GL_${GroupName.Substring(3)}_$type"
+            if (Get-ADGroup -Filter "SamAccountName -eq '$GLName'" -ErrorAction SilentlyContinue) {
+                Write-Host "         [OK] GL : $GLName"
+            } else {
+                Write-Host "         [ERREUR] GL manquant : $GLName"
+            }
         }
     }
 

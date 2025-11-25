@@ -93,7 +93,7 @@ foreach ($user in $users) {
                    -Surname $Nom `
                    -Description $Description `
                    -Office $Bureau `
-                   -EmployeeID $NInterne `
+                   -OfficePhone $NInterne `
                    -SamAccountName $SAM `
                    -UserPrincipalName "$SAM@$(Get-ADDomain).DNSRoot" `
                    -AccountPassword $SecurePassword `
