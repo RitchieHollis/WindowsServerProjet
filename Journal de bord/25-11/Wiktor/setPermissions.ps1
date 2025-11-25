@@ -57,6 +57,9 @@ function Grant-FolderPermission {
 
 $domainNetBIOS = (Get-ADDomain).NetBIOSName
 
+$DirectionIdentity = "$domainNetBIOS\$DirectionGroupSam"
+$AllUsersIdentity = "$domainNetBIOS\$AllUsersGroupSam"
+
 $DeptInfo = @{}  # Dept -> SubDept -> [Group, Users, Manager]
 
 foreach ($dept in $Structure.Keys) {
@@ -94,6 +97,16 @@ foreach ($dept in $Structure.Keys) {
         Write-Host "  -> And our winner is... drum-roll please: $($manager.SamAccountName)" -ForegroundColor Green
     }
 }
+
+$AllManagersIdentities = @()
+
+foreach ($dept in $DeptInfo.Keys) {
+    foreach ($entry in $DeptInfo[$dept].GetEnumerator()) {
+        $mgrSam = $entry.Value.Manager.SamAccountName
+        $AllManagersIdentities += "$domainNetBIOS\$mgrSam"
+    }
+}
+$AllManagersIdentities = $AllManagersIdentities | Select-Object -Unique
 
 Write-Host ""
 Write-Host "Applying NTFS permissions under $SharesRoot" -ForegroundColor Yellow
@@ -145,6 +158,9 @@ foreach ($dept in $DeptInfo.Keys) {
         Grant-FolderPermission -Path $deptPath -Identity $m -Rights 'Modify'
     }
 
+    # Direction: RW on department root
+    Grant-FolderPermission -Path $deptPath -Identity $DirectionIdentity -Rights 'Modify'
+
     # Commun folder: everyone in dept RW (common space)
     $communPath = Join-Path $deptPath "Commun"
     if (Test-Path $communPath) {
@@ -155,6 +171,9 @@ foreach ($dept in $DeptInfo.Keys) {
             Grant-FolderPermission -Path $communPath -Identity $g -Rights 'Modify'
         }
     }
+
+    # Direction also RW on department Commun
+    Grant-FolderPermission -Path $communPath -Identity $DirectionIdentity -Rights 'Modify'
 
     #Sub-department folders: own group RW, others R
     foreach ($entry in $deptData.GetEnumerator()) {
@@ -182,7 +201,30 @@ foreach ($dept in $DeptInfo.Keys) {
             $otherGroup = "$domainNetBIOS\$($other.Value.Group)"
             Grant-FolderPermission -Path $subPath -Identity $otherGroup -Rights 'ReadAndExecute'
         }
+
+        # Direction RW on each sub-department folder
+        Grant-FolderPermission -Path $subPath -Identity $DirectionIdentity -Rights 'Modify'
     }
+}
+
+Write-Host ""
+Write-Host "== Global Commun folder rules ==" -ForegroundColor Magenta
+
+$globalCommunPath = Join-Path $SharesRoot "Commun"
+
+if (Test-Path $globalCommunPath) {
+    Cleanup-Inheritance -Path $globalCommunPath
+
+    Write-Host "  Setting ACL on '$globalCommunPath'" -ForegroundColor Cyan
+
+    Grant-FolderPermission -Path $globalCommunPath -Identity $AllUsersIdentity -Rights 'ReadAndExecute'
+    foreach ($mgr in $AllManagersIdentities) {
+        Grant-FolderPermission -Path $globalCommunPath -Identity $mgr -Rights 'Modify'
+    }
+    Grant-FolderPermission -Path $globalCommunPath -Identity $DirectionIdentity -Rights 'Modify'
+}
+else {
+    Write-Warning "Global Commun folder '$globalCommunPath' not found, skipping."
 }
 
 Write-Host ""
