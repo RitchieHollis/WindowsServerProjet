@@ -28,16 +28,31 @@ $needReboot = $false
 
 Write-Host "Configuring static IP..." -ForegroundColor Cyan
 
+$adapter = Get-NetAdapter |
+Where-Object { $_.Status -eq 'Up' -and -not $_.Virtual } |
+Sort-Object ifIndex |
+Select-Object -First 1
+
+if (-not $adapter) {
+    throw "No active network adapter found."
+}
+
+# Remove all existing IPv4 addresses
 Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
 Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
 
+# Remove any existing default gateway route
+Get-NetRoute -InterfaceIndex $adapter.ifIndex -DestinationPrefix "0.0.0.0/0" -ErrorAction SilentlyContinue |
+Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue
+
+# Now create our static IPv4 address + gateway
 New-NetIPAddress -InterfaceIndex $adapter.ifIndex `
     -IPAddress $IPv4Address `
     -PrefixLength $PrefixLen `
     -DefaultGateway $Gateway
 
-Set-DnsClientServerAddress -InterfaceIndex $adapter.ifIndex `
-    -ServerAddresses $DnsServers
+# DNS points to DCROOT
+Set-DnsClientServerAddress -InterfaceIndex $adapter.ifIndex -ServerAddresses $DnsServers
 
 if ($env:COMPUTERNAME -ne $TargetName) {
     Write-Host "Renaming computer to $TargetName..." -ForegroundColor Cyan
