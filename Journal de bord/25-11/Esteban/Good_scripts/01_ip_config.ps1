@@ -1,5 +1,5 @@
 # --- VARIABLES ---
-$ServerName = "Londres-SRV"
+$ServerName = "Londres"
 $Interface  = "Ethernet"
 $IPAddress  = "10.0.0.2"
 $PrefixLength = 22
