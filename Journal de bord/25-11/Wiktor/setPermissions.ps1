@@ -1,5 +1,30 @@
+<#
+ setPermissions.ps1
+
+ Script de configuration des permissions NTFS pour le serveur DCroot.
+
+ - Parcourt la structure des départements/sous-départements définie dans $Structure
+ - Pour chaque sous-département, sélectionne aléatoirement un responsable
+   parmi les membres du groupe global correspondant (GG_<Département>_<SousDépartement>)
+ - Applique les droits sur les dossiers de département sous C:\ :
+      * groupes des sous-départements : Lecture (R)
+      * responsables de sous-départements : Modification (R/W)
+      * groupe « Direction » : Modification (R/W) sur tout le département
+ - Applique les droits sur les sous-dossiers de chaque sous-département :
+      * groupe du sous-département + son responsable : Modification (R/W)
+      * autres groupes du même département : Lecture (R)
+      * groupe « Direction » : Modification (R/W)
+ - Configure le dossier "Commun" :
+      * tous les utilisateurs (Domain Users) : Lecture (R)
+      * tous les responsables de sous-départements : Modification (R/W)
+      * groupe « Direction » : Modification (R/W)
+
+ Les paramètres principaux (chemin des partages, groupe Direction, groupe
+ « tous les utilisateurs », etc.) se trouvent dans la section param() en haut du script.
+#>
+
 param(
-    [string]$SharesRoot = "C:\Shares",
+    [string]$SharesRoot = "C:\",
     [string]$DepartmentsBaseOU = "OU=Departments,DC=Angleterre,DC=lan",
     [string]$DirectionGroupSam = "GG_DIRECTION",
     [string]$AllUsersGroupSam = "Domain Users" 
