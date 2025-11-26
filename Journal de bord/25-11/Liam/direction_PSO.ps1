@@ -1,12 +1,24 @@
 Param(
-    [string]$Domain = "london.local",
+    [string]$Domain = "angleterre.lan",
     [string]$GroupName = "GG_DIRECTION",
     [string]$PSOName = "PSO_Direction"
 )
 
 Import-Module ActiveDirectory
 
-Write-Host "=== Vérification du groupe Direction ===" -ForegroundColor Cyan
+$CurrentDomain = (Get-ADDomain).DNSRoot
+
+Write-Host "=== Vérification du domaine ===" -ForegroundColor Cyan
+
+if ($CurrentDomain -ne $Domain) {
+    Write-Host "ERREUR : Ce script doit être exécuté dans le domaine '$Domain'." -ForegroundColor Red
+    Write-Host "         Domaine actuel détecté : $CurrentDomain" -ForegroundColor Yellow
+    exit
+} else {
+    Write-Host "OK : Domaine correct ($CurrentDomain)" -ForegroundColor Green
+}
+
+Write-Host "`n=== Vérification du groupe Direction ===" -ForegroundColor Cyan
 $group = Get-ADGroup -Filter "Name -eq '$GroupName'" -ErrorAction SilentlyContinue
 
 if (-not $group) {

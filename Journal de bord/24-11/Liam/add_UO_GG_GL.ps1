@@ -4,49 +4,8 @@ Param(
 
 Import-Module ActiveDirectory
 
-$RootOU = "Direction"
-$RootOUPath = "OU=$RootOU,$DomainDN"
-
-if (-not (Get-ADOrganizationalUnit -LDAPFilter "(ou=$RootOU)" -ErrorAction SilentlyContinue)) {
-    New-ADOrganizationalUnit -Name $RootOU -Path $DomainDN
-    Write-Host "OU créée : $RootOU"
-} else {
-    Write-Host "OU déjà existante : $RootOU"
-}
-
-$RootGroup = "GG_"+$RootOU.ToUpper()
-if (-not (Get-ADGroup -Filter "SamAccountName -eq '$RootGroup'" -ErrorAction SilentlyContinue)) {
-    New-ADGroup -Name $RootGroup `
-                -SamAccountName $RootGroup `
-                -GroupScope Global `
-                -GroupCategory Security `
-                -Path $RootOUPath
-    Write-Host "Groupe créé : $RootGroup"
-} else {
-    Write-Host "Groupe déjà existant : $RootGroup"
-}
-
-$GLTypes = @("R", "W", "RW")
-
-foreach ($type in $GLTypes) {
-    $GLName = "GL_DIRECTION_$type"
-
-    if (-not (Get-ADGroup -Filter "SamAccountName -eq '$GLName'" -ErrorAction SilentlyContinue)) {
-
-        New-ADGroup -Name $GLName `
-                    -SamAccountName $GLName `
-                    -GroupScope DomainLocal `
-                    -GroupCategory Security `
-                    -Path $RootOUPath
-
-        Write-Host "GL créé : $GLName"
-    }
-    else {
-        Write-Host "GL déjà existant : $GLName"
-    }
-}
-
 $Structure = @{
+    "Direction"           = @()
     "Informatique"        = @("Developpement", "Hotline", "Systemes")
     "Ressources humaines" = @("Recrutement", "Gestion du personnel")
     "Finances"            = @("Investissements", "Comptabilite")
@@ -56,18 +15,73 @@ $Structure = @{
     "Marketting"          = @("Site1", "Site2", "Site3", "Site4")
 }
 
-Write-Host "=== DÉBUT DE CRÉATION DES OU, GG ET GL ===" -ForegroundColor Cyan
+$SubFolders = @("GG", "GL", "Users")
+$GLTypes = @("R", "W", "RW")
+
+Write-Host "=== DÉBUT DE CRÉATION DES OU, GG, GL ET USERS ===" -ForegroundColor Cyan
 
 foreach ($OUParent in $Structure.Keys) {
 
-    $ParentOUPath = "OU=$OUParent,$RootOUPath"
+    $ParentOUPath = "OU=$OUParent,$DomainDN"
 
-    if (-not (Get-ADOrganizationalUnit -LDAPFilter "(ou=$OUParent)" -SearchBase $RootOUPath -ErrorAction SilentlyContinue)) {
-        New-ADOrganizationalUnit -Name $OUParent -Path $RootOUPath
+    if (-not (Get-ADOrganizationalUnit -LDAPFilter "(ou=$OUParent)" -SearchBase $DomainDN -ErrorAction SilentlyContinue)) {
+        New-ADOrganizationalUnit -Name $OUParent -Path $DomainDN
         Write-Host "OU créée : $OUParent"
     } else {
         Write-Host "OU déjà existante : $OUParent"
     }
+
+    if ($Structure[$OUParent].Count -eq 0) {
+
+        Write-Host "   Département sans sous-OU : création de GG / GL / Users"
+
+        foreach ($folder in $SubFolders) {
+            $FolderPath = "OU=$folder,OU=$OUParent,$DomainDN"
+
+            if (-not (Get-ADOrganizationalUnit -LDAPFilter "(ou=$folder)" -SearchBase $ParentOUPath -ErrorAction SilentlyContinue)) {
+                New-ADOrganizationalUnit -Name $folder -Path $ParentOUPath
+                Write-Host "    Sous-OU créée : $folder"
+            } else {
+                Write-Host "    Sous-OU déjà existante : $folder"
+            }
+        }
+
+        $Prefix = $OUParent.ToUpper().Replace(" ", "")
+
+        $GroupGG = "GG_${Prefix}"
+        $GGPath = "OU=GG,OU=$OUParent,$DomainDN"
+
+        if (-not (Get-ADGroup -Filter "SamAccountName -eq '$GroupGG'" -ErrorAction SilentlyContinue)) {
+            New-ADGroup -Name $GroupGG `
+                        -SamAccountName $GroupGG `
+                        -GroupScope Global `
+                        -GroupCategory Security `
+                        -Path $GGPath
+            Write-Host "    Groupe créé : $GroupGG"
+        } else {
+            Write-Host "    Groupe déjà existant : $GroupGG"
+        }
+
+        foreach ($type in $GLTypes) {
+            $GLName = "GL_${Prefix}_${type}"
+            $GLPath = "OU=GL,OU=$OUParent,$DomainDN"
+
+            if (-not (Get-ADGroup -Filter "SamAccountName -eq '$GLName'" -ErrorAction SilentlyContinue)) {
+                New-ADGroup -Name $GLName `
+                            -SamAccountName $GLName `
+                            -GroupScope DomainLocal `
+                            -GroupCategory Security `
+                            -Path $GLPath
+                Write-Host "    GL créé : $GLName"
+            } else {
+                Write-Host "    GL déjà existant : $GLName"
+            }
+        }
+
+        continue
+    }
+
+    Write-Host "   Département avec sous-OU : pas de GG/GL/Users dans $OUParent"
 
     foreach ($OUSub in $Structure[$OUParent]) {
 
@@ -75,44 +89,52 @@ foreach ($OUParent in $Structure.Keys) {
 
         if (-not (Get-ADOrganizationalUnit -LDAPFilter "(ou=$OUSub)" -SearchBase $ParentOUPath -ErrorAction SilentlyContinue)) {
             New-ADOrganizationalUnit -Name $OUSub -Path $ParentOUPath
-            Write-Host "  Sous-OU créée : $OUSub"
+            Write-Host "    Sous-OU créée : $OUSub"
         } else {
-            Write-Host "  Sous-OU déjà existante : $OUSub"
+            Write-Host "    Sous-OU déjà existante : $OUSub"
         }
 
-        $Prefix = $OUParent.ToUpper().Replace(" ", "")
-        $GroupName = "GG_${Prefix}_$($OUSub.ToUpper().Replace(' ', ''))"
+        foreach ($folder in $SubFolders) {
+            $SubFolderPath = "OU=$folder,OU=$OUSub,OU=$OUParent,$DomainDN"
 
-        if (-not (Get-ADGroup -Filter "SamAccountName -eq '$GroupName'" -ErrorAction SilentlyContinue)) {
+            if (-not (Get-ADOrganizationalUnit -LDAPFilter "(ou=$folder)" -SearchBase $SubOUPath -ErrorAction SilentlyContinue)) {
+                New-ADOrganizationalUnit -Name $folder -Path $SubOUPath
+                Write-Host "      Sous-OU créée : $folder"
+            } else {
+                Write-Host "      Sous-OU déjà existante : $folder"
+            }
+        }
 
-            New-ADGroup -Name $GroupName `
-                        -SamAccountName $GroupName `
+        $PrefixParent = $OUParent.ToUpper().Replace(" ", "")
+        $PrefixSub = $OUSub.ToUpper().Replace(" ", "")
+
+        $GroupGGSub = "GG_${PrefixParent}_${PrefixSub}"
+        $GGSubPath = "OU=GG,OU=$OUSub,OU=$OUParent,$DomainDN"
+
+        if (-not (Get-ADGroup -Filter "SamAccountName -eq '$GroupGGSub'" -ErrorAction SilentlyContinue)) {
+            New-ADGroup -Name $GroupGGSub `
+                        -SamAccountName $GroupGGSub `
                         -GroupScope Global `
                         -GroupCategory Security `
-                        -Path $SubOUPath
-
-            Write-Host "    Groupe créé : $GroupName"
+                        -Path $GGSubPath
+            Write-Host "      Groupe créé : $GroupGGSub"
         } else {
-            Write-Host "    Groupe déjà existant : $GroupName"
+            Write-Host "      Groupe déjà existant : $GroupGGSub"
         }
 
-        $GLs = @("R", "W", "RW")
-        foreach ($type in $GLs) {
+        foreach ($type in $GLTypes) {
+            $GLNameSub = "GL_${PrefixParent}_${PrefixSub}_${type}"
+            $GLSubPath = "OU=GL,OU=$OUSub,OU=$OUParent,$DomainDN"
 
-            $BaseName = $GroupName.Substring(3)
-            $GLName = "GL_${BaseName}_${type}"
-
-            if (-not (Get-ADGroup -Filter "SamAccountName -eq '$GLName'" -ErrorAction SilentlyContinue)) {
-
-                New-ADGroup -Name $GLName `
-                            -SamAccountName $GLName `
+            if (-not (Get-ADGroup -Filter "SamAccountName -eq '$GLNameSub'" -ErrorAction SilentlyContinue)) {
+                New-ADGroup -Name $GLNameSub `
+                            -SamAccountName $GLNameSub `
                             -GroupScope DomainLocal `
                             -GroupCategory Security `
-                            -Path $SubOUPath
-
-                Write-Host "        GL créé : $GLName"
+                            -Path $GLSubPath
+                Write-Host "      GL créé : $GLNameSub"
             } else {
-                Write-Host "        GL déjà existant : $GLName"
+                Write-Host "      GL déjà existant : $GLNameSub"
             }
         }
     }

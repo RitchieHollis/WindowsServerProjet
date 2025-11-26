@@ -6,7 +6,6 @@ Param(
 Import-Module ActiveDirectory
 
 $DomainDN = (Get-ADDomain).DistinguishedName
-$RootOU = "Direction"
 $ErrorLog = ".\Users_Error.csv"
 $PasswordLog = ".\Users_Passwords.csv"
 
@@ -14,29 +13,24 @@ $PasswordLog = ".\Users_Passwords.csv"
 function Generate-RandomPassword {
 
     $length = 7
-    $upper = 65..90 | ForEach-Object {[char]$_}      # A-Z
-    $lower = 97..122 | ForEach-Object {[char]$_}     # a-z
-    $digits = 48..57 | ForEach-Object {[char]$_}     # 0-9
-    $special = "!@#$%^&*()_+-=".ToCharArray()       # caractères spéciaux
+    $upper = 65..90 | ForEach-Object {[char]$_}
+    $lower = 97..122 | ForEach-Object {[char]$_}
+    $digits = 48..57 | ForEach-Object {[char]$_}
+    $special = "!@#$%^&*()_+-=".ToCharArray()
 
-    # Sélection d'au moins un caractère de chaque catégorie
     $pw = @()
     $pw += $upper | Get-Random -Count 1
     $pw += $lower | Get-Random -Count 1
     $pw += $digits | Get-Random -Count 1
     $pw += $special | Get-Random -Count 1
 
-    # Remplissage du reste de la longueur
     $allChars = $upper + $lower + $digits + $special
     $remainingLength = $Length - $pw.Count
     $pw += ($allChars | Get-Random -Count $remainingLength)
-
-    # Mélange aléatoire des caractères pour éviter un ordre prévisible
     $pw = $pw | Sort-Object {Get-Random}
 
     return -join $pw
 }
-
 
 $users = Import-Csv -Path $InputCsv
 $ErrorUsers = @()
@@ -46,6 +40,7 @@ Write-Host "=== DÉBUT DE CRÉATION DES UTILISATEURS ===" -ForegroundColor Cyan
 
 foreach ($user in $users) {
     try {
+
         $Nom = $user.Nom
         $Prenom = $user.Prenom
         $Description = $user.Description
@@ -56,23 +51,21 @@ foreach ($user in $users) {
         $parts = $Departement -split "/"
 
         if ($parts.Count -eq 2) {
-            $ParentOUName = $parts[1]
-            $OUName = $parts[0]
+            $Dept = $parts[1]
+            $SubDept = $parts[0]
 
-            $OUPath = "OU=$OUName,OU=$ParentOUName,OU=$RootOU,$DomainDN"
+            $OUPath = "OU=Users,OU=$SubDept,OU=$Dept,$DomainDN"
 
-            $OUClean = ($OUName.Replace(" ","")).ToUpper()
-            $ParentOUClean = ($ParentOUName.Replace(" ","")).ToUpper()
-            $GGName = "GG_${ParentOUClean}_${OUClean}"
+            $GGName = "GG_"+($Dept.Replace(" ","")).ToUpper()+"_"+$($SubDept.Replace(" ","")).ToUpper()
+
         } else {
-            $OUName = $Departement
-            $OUPath = "OU=$OUName,$DomainDN"
-            $GGName = "GG_$($OUName.ToUpper())"
-        }
 
-        # --- DEBUG : affichage OU et GG ---
-        # Write-Host "[DEBUG] OUPath : $OUPath"
-        # Write-Host "[DEBUG] Groupe GG : $GGName"
+            $Dept = $parts[0]
+
+            $OUPath = "OU=Users,OU=$Dept,$DomainDN"
+
+            $GGName = "GG"+"_"+$($Dept.Replace(" ","")).ToUpper()
+        }
 
         $SAM = "$Prenom.$Nom"
         if ($SAM.Length -gt 20) {
