@@ -1,3 +1,9 @@
+# Ce script crée automatiquement la structure Active Directory des départements et sous-départements.
+# Pour chaque département sans sous-OU, il crée des sous-dossiers "GG", "GL" et "Users" et les groupes correspondants.
+# Pour les départements avec sous-OU, il ne crée pas de sous-dossiers au niveau parent, mais les crée pour chaque sous-département.
+# Les groupes "GG" (Global) et "GL" (Domain Local) sont générés selon la nomenclature de chaque département et sous-département.
+# Le script vérifie également si les OU et les groupes existent déjà pour éviter les doublons.
+
 Param(
     [string]$DomainDN = (Get-ADDomain).DistinguishedName
 )

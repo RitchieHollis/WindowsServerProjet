@@ -1,3 +1,8 @@
+# Ce script vérifie que le script est exécuté dans le bon domaine avant de continuer.
+# Il vérifie l’existence du groupe spécifié (ex: GG_DIRECTION) et quitte si le groupe n’existe pas.
+# Il crée un PSO avec des paramètres de sécurité (longueur minimale, complexité, verrouillage, etc.) si celui-ci n'existe pas déjà.
+# Enfin, il applique le PSO au groupe ciblé.
+
 Param(
     [string]$Domain = "angleterre.lan",
     [string]$GroupName = "GG_DIRECTION",

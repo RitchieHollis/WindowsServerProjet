@@ -1,3 +1,6 @@
+# Ce script vérifie si la fonctionnalité "Active Directory Recycle Bin" est activée.
+# Si elle ne l'est pas, le script active la corbeille AD pour toute la forêt.
+
 Import-Module ActiveDirectory
 
 $ADRecycleBinStatus = Get-ADOptionalFeature -Filter 'name -like "Recycle Bin Feature"' | Select-Object Name, EnabledScopes

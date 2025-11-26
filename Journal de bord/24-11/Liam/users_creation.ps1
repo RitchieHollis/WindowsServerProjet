@@ -1,3 +1,9 @@
+# Ce script crée des utilisateurs Active Directory à partir d’un fichier CSV.
+# Chaque utilisateur est placé dans le bon OU "Users" correspondant à son département ou sous-département.
+# Un mot de passe aléatoire est généré pour chaque utilisateur et stocké dans un fichier CSV.
+# Les utilisateurs sont ajoutés au groupe global (GG) correspondant à leur département/sous-département.
+# Les erreurs de création sont enregistrées dans un fichier séparé pour suivi.
+
 Param(
     [Parameter(Mandatory=$true)]
     [string]$InputCsv
