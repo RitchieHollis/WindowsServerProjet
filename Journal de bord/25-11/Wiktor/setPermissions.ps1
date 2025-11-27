@@ -24,13 +24,16 @@
 #>
 
 param(
-    [string]$SharesRoot = "C:\",
+    [string]$SharesRoot = "C:",
     [string]$DepartmentsBaseOU = "OU=Departments,DC=Angleterre,DC=lan",
     [string]$DirectionGroupSam = "GG_DIRECTION",
     [string]$AllUsersGroupSam = "Domain Users" 
 )
 
 Import-Module ActiveDirectory
+
+$DeptResponsables = @()
+$MailDomain = "angleterre.lan"
 
 Write-Host "Department permissions init" -ForegroundColor Yellow
 
@@ -115,13 +118,24 @@ foreach ($dept in $Structure.Keys) {
 
         $manager = Get-Random -InputObject $users
 
+        $mail = "$($manager.SamAccountName)@$MailDomain"
+
         $DeptInfo[$dept][$sub] = [PSCustomObject]@{
-            Group   = $group.SamAccountName
-            Users   = $users
-            Manager = $manager
+            Group       = $group.SamAccountName
+            Users       = $users
+            Manager     = $manager
+            ManagerMail = $mail
         }
 
-        Write-Host "  -> And our winner is... drum-roll please: $($manager.SamAccountName)" -ForegroundColor Green
+        #Ajouter à une liste globale pour FSRM
+        $DeptResponsables += [PSCustomObject]@{
+            Department  = $dept
+            SubDept     = $sub
+            ManagerSam  = $manager.SamAccountName
+            ManagerMail = $mail
+        }
+
+        Write-Host "  -> And our winner is... drum-roll please: $($manager.SamAccountName)" -ForegroundColor Red
     }
 }
 
@@ -242,3 +256,7 @@ else {
 
 Write-Host ""
 Write-Host "Department permissions script completed. That's bloody lovely" -ForegroundColor Yellow
+
+$DeptResponsables |
+Export-Csv 'C:\Scripts\DeptResponsables.csv' -NoTypeInformation -Encoding UTF8
+Write-Host "You can find our totaly competent responsibles in C:\Scripts\DeptResponsables.csv" -ForegroundColor Yellow
