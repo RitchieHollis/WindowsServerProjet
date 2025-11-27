@@ -51,11 +51,23 @@ if (-not $cs.PartOfDomain -or $cs.Domain -ne $DomainName) {
     throw "This server is not joined to the expected domain '$DomainName'. Current domain: '$($cs.Domain)'. Aborting."
 }
 
-Import-Module ADCSDeployment
+Write-Host "[ADCS] Checking AD CS role..." -ForegroundColor Cyan
+$adcsFeature = Get-WindowsFeature ADCS-Cert-Authority
 
-$certSvc = Get-Service certsvc -ErrorAction SilentlyContinue
-if (-not $certSvc) {
-    Write-Host "Installing Enterprise Root CA role..." -ForegroundColor Cyan
+if (-not $adcsFeature -or -not $adcsFeature.Installed) {
+    Write-Host "    ADCS-Cert-Authority not installed, installing..." -ForegroundColor Yellow
+    Install-WindowsFeature ADCS-Cert-Authority -IncludeManagementTools | Out-Null
+    Write-Host "    AD CS role installed." -ForegroundColor Green
+}
+else {
+    Write-Host "    AD CS role already installed." -ForegroundColor Gray
+}
+
+$caConfigKey = "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration"
+$caConfigured = Test-Path $caConfigKey
+
+if (-not $caConfigured) {
+    Write-Host "[ADCS] Installing Enterprise Root CA role" -ForegroundColor Cyan
 
     Install-AdcsCertificationAuthority `
         -CAType EnterpriseRootCA `
@@ -69,10 +81,10 @@ if (-not $certSvc) {
         -LogDirectory "C:\Windows\System32\CertLog" `
         -Force
 
-    Write-Host "Enterprise Root CA installed with 10-year lifetime and non-exportable key." -ForegroundColor Gray
+    Write-Host "[ADCS] Enterprise Root CA installed with 10-year lifetime and non-exportable key." -ForegroundColor Gray
 }
 else {
-    Write-Host "CA service already present, skipping Install-AdcsCertificationAuthority." -ForegroundColor Yellow
+    Write-Host "[ADCS] CA already configured, skipping Install-AdcsCertificationAuthority." -ForegroundColor Yellow
 }
 
 Write-Host "Configuring CRL and AIA publication over HTTP..." -ForegroundColor Cyan
@@ -97,8 +109,14 @@ certutil -setreg CA\CRLPublicationURLs "1:$CrlFolder\%3%8%9.crl`n10:$httpBase/%3
 # AIA (Authority Information Access) for CA certificate publication
 certutil -setreg CA\CACertPublicationURLs "1:$CrlFolder\%1_%3%4.crt`n10:$httpBase/%1_%3%4.crt" | Out-Null
 
-Restart-Service certsvc
-certutil -crl | Out-Null
+$certSvc = Get-Service certsvc -ErrorAction SilentlyContinue
+if ($certSvc) {
+    Restart-Service certsvc
+    certutil -crl | Out-Null
+}
+else {
+    Write-Warning "[ADCS] certsvc service not found, cannot restart CA service. Verify ADCS installation."
+}
 
 if (Test-Path $CertEnrollSystemPath) {
     Copy-Item "$CertEnrollSystemPath\*.*" $CrlFolder -Force
