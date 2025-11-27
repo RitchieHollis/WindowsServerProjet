@@ -18,7 +18,7 @@
           fichiers sensibles (base ADCS, journaux), simulant la protection matérielle
           des clés dans un contexte de laboratoire.
 
-    ADCS_CA.ps1
+    ADCS.ps1
         Installe et sécurise l’autorité de certification sur SRVSEC :
         - Installation d’une Enterprise Root CA avec clé privée non exportable et durée
           de vie de 10 ans (rôle assimilé à une CA d’émission dans ce labo).
