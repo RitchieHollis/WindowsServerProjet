@@ -24,7 +24,7 @@
 #>
 
 param(
-    [string]$SharesRoot = "C:",
+    [string]$SharesRoot = "C:\shares",
     [string]$DepartmentsBaseOU = "OU=Departments,DC=Angleterre,DC=lan",
     [string]$DirectionGroupSam = "GG_DIRECTION",
     [string]$AllUsersGroupSam = "Domain Users" 
