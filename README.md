@@ -1,5 +1,9 @@
 # Projet Windows Server
 
+La collection de tous les scripts écrits pour le projet Windows Server.  
+
+Les directories sont séparés en journées qui contiennent les directories de chaque personne.  
+
 ## Collaborateurs
 
 - *Wiktor :* [@RitchieHollis](https://github.com/RitchieHollis)  
