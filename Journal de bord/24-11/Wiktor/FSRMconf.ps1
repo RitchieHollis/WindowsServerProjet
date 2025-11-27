@@ -48,6 +48,8 @@ $BlockedFileGroups = @(
 #-------------------------------------------------
 
 Write-Host "Init-FSRM starting..." -ForegroundColor Red
+
+Install-WindowsFeature FS-Resource-Manager -IncludeManagementTools
 #check
 Import-Module FileServerResourceManager -ErrorAction Stop
 
